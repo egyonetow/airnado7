@@ -1,0 +1,13 @@
+{
+  "name": "airnado",
+  "version": "1.0.0",
+  "description": "لعبة الطيارة مع Firebase",
+  "scripts": {
+    "start": "live-server",
+    "build": "echo 'no build step needed'"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}

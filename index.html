@@ -1,0 +1,125 @@
+<!DOCTYPE html><html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لعبة الطيارة - Airnado</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="light-mode">
+  <!-- 🔁 زر تبديل الوضع -->
+  <button class="theme-toggle" onclick="toggleTheme()">🌓</button>  <!-- ✅ شاشة تسجيل الدخول والتسجيل -->  <div id="loginScreen" class="screen active">
+    <div class="container">
+      <div class="login-box">
+        <h1>🛩️ لعبة الطيارة</h1>
+        <div class="tabs">
+          <button class="tab-btn active" onclick="showTab('login')">تسجيل الدخول</button>
+          <button class="tab-btn" onclick="showTab('register')">إنشاء حساب</button>
+        </div><div id="loginTab" class="tab-content active">
+      <form id="loginForm">
+        <input type="text" id="loginUsername" placeholder="اسم المستخدم" required />
+        <input type="password" id="loginPassword" placeholder="كلمة المرور" required />
+        <button type="submit">دخول</button>
+      </form>
+    </div>
+
+    <div id="registerTab" class="tab-content">
+      <form id="registerForm">
+        <input type="text" id="regUsername" placeholder="اسم المستخدم" required />
+        <input type="password" id="regPassword" placeholder="كلمة المرور" required />
+        <input type="password" id="regConfirmPassword" placeholder="تأكيد كلمة المرور" required />
+        <input type="text" id="regPhone" placeholder="رقم الهاتف (اختياري)" />
+        <input type="email" id="regEmail" placeholder="البريد الإلكتروني (اختياري)" />
+        <input type="text" id="regCountry" placeholder="البلد (اختياري)" />
+        <input type="text" id="regReferral" placeholder="كود الدعوة (إن وجد)" />
+        <button type="submit">إنشاء حساب</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+  </div>  <!-- 🛫 شاشة اللعبة -->  <div id="gameScreen" class="screen">
+    <div class="header">
+      <div class="user-info">
+        <span id="username">مرحباً، </span>
+        <span class="balance">الرصيد: <span id="balance">0</span> USDT</span>
+        <button id="profileBtn" class="withdraw-btn">ملفي</button>
+        <button id="inboxBtn" class="withdraw-btn">📩 صندوق الوارد</button>
+        <button id="depositBtn" class="deposit-btn">شحن الرصيد</button>
+        <button id="withdrawBtn" class="withdraw-btn">سحب</button>
+        <button id="logoutBtn" class="logout-btn">خروج</button>
+      </div>
+    </div><div class="game-container">
+  <div class="game-area">
+    <div class="flight-chart">
+      <canvas id="flightCanvas" width="800" height="450"></canvas>
+      <div id="plane" class="plane">🛩️</div>
+      <div id="multiplier" class="multiplier">1.00x</div>
+    </div>
+    <div id="gameStatus" class="game-status">انتظر بدء الجولة التالية...</div>
+  </div>
+</div>
+
+  </div>  <!-- 💸 نافذة السحب -->  <div id="withdrawModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="withdrawModal.style.display='none'">×</span>
+      <h2>السحب</h2>
+      <form id="withdrawForm">
+        <label>المبلغ المطلوب:</label>
+        <input type="number" id="withdrawAmount" required />
+        <label>اختر وسيلة السحب:</label>
+        <select id="withdrawMethod" required>
+          <option value="usdt">USDT (محفظة عملات مشفرة)</option>
+          <option value="instapay">InstaPay</option>
+          <option value="wallet">محفظة إلكترونية</option>
+          <option value="bank">تحويل بنكي</option>
+        </select>
+        <label>رقم الحساب / المحفظة:</label>
+        <input type="text" id="withdrawAccount" required />
+        <button type="submit">إرسال الطلب</button>
+      </form>
+    </div>
+  </div>  <!-- ⚡ نافذة شحن الرصيد -->  <div id="depositModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="depositModal.style.display='none'">×</span>
+      <h2>شحن الرصيد</h2>
+      <div class="deposit-info">
+        <p>لشحن رصيدك، أرسل USDT (TRC-20) إلى العنوان التالي:</p>
+        <div class="wallet-address">
+          <input type="text" value="TBHVuc4AVbmvjpuWyX17CAxFbuQn49N8bt" readonly />
+          <button onclick="copyAddress()">نسخ</button>
+        </div>
+        <p>بعد الإرسال، تواصل معنا على تليجرام: <a href="https://t.me/PrinceOfDeals" target="_blank">@PrinceOfDeals</a></p>
+        <hr />
+        <p><strong>وسائل أخرى (قريبًا):</strong></p>
+        <label><input type="radio" disabled /> Instapay</label><br />
+        <label><input type="radio" disabled /> محفظة إلكترونية</label><br />
+        <label><input type="radio" disabled /> تحويل بنكي</label>
+      </div>
+    </div>
+  </div>  <!-- 👤 نافذة الملف الشخصي -->  <div id="profileModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="profileModal.style.display='none'">×</span>
+      <h2>الملف الشخصي</h2>
+      <form id="profileForm">
+        <input type="text" id="profileUsername" placeholder="اسم المستخدم الجديد" />
+        <input type="password" id="profilePassword" placeholder="كلمة المرور الجديدة" />
+        <input type="text" id="profilePhone" placeholder="رقم الهاتف" />
+        <input type="email" id="profileEmail" placeholder="البريد الإلكتروني" />
+        <input type="text" id="profileCountry" placeholder="البلد" />
+        <button type="submit">حفظ التغييرات</button>
+      </form>
+      <div style="margin-top: 20px; padding: 10px; background: #eee; border-radius: 10px; color: #333">
+        <p><strong>كود دعوتك:</strong> <span id="userReferralCode"></span></p>
+        <p><strong>عدد الأشخاص الذين دعوتهم:</strong> <span id="userReferralCount">0</span></p>
+      </div>
+    </div>
+  </div>  <!-- 💬 نافذة الرسائل -->  <div id="inboxModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="inboxModal.style.display='none'">×</span>
+      <h2>📩 رسائلك</h2>
+      <div id="inboxMessages" style="max-height:300px; overflow-y:auto; background:#f0f0f0; padding:10px; border-radius:10px; color:#000;"></div>
+      <textarea id="userReply" placeholder="اكتب ردك هنا..." rows="3" style="width:100%; margin-top:10px; border-radius:10px; padding:10px;"></textarea>
+      <button onclick="sendUserReply()">إرسال</button>
+    </div>
+  </div>  <!-- 📜 السكربت الرئيسي -->  <script type="module" src="script.js"></script></body>
+</html>

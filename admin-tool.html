@@ -1,0 +1,220 @@
+<!DOCTYPE html><html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>أداة المشرف - لعبة الطيارة</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: white;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 30px;
+    }
+    h1, h2, h3 {
+      text-align: center;
+      color: #ffd700;
+    }
+    .admin-section {
+      margin-top: 30px;
+    }
+    input, button, select, textarea {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+    .user-log, .withdraw-log {
+      background: rgba(0,0,0,0.3);
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .withdraw-actions button {
+      padding: 6px 12px;
+      margin-left: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .accept { background: #4CAF50; color: white; }
+    .reject { background: #f44336; color: white; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎯 أداة المشرف</h1><div id="adminLogin">
+  <input type="text" id="adminUser" placeholder="اسم المستخدم" />
+  <input type="password" id="adminPass" placeholder="كلمة المرور" />
+  <button onclick="login()">دخول</button>
+</div>
+
+<div id="adminPanel" style="display:none">
+  <h2>💥 نقاط التحطم</h2>
+  <div id="crashPointList"></div>
+
+  <div class="admin-section">
+    <h3>📋 المستخدمون</h3>
+    <div id="userList"></div>
+    <input type="text" id="targetUser" placeholder="اسم المستخدم" />
+    <input type="number" id="amount" placeholder="المبلغ لإضافته" />
+    <button onclick="addBalance()">إضافة رصيد</button>
+  </div>
+
+  <div class="admin-section">
+    <h3>💸 طلبات السحب</h3>
+    <div id="withdrawRequests"></div>
+  </div>
+
+  <div class="admin-section">
+    <h3>📬 الرسائل</h3>
+    <select id="userSelector"></select>
+    <div id="chatBox" style="max-height:300px; overflow-y:auto; background:#0002; padding:10px; border-radius:10px;"></div>
+    <textarea id="adminMessage" placeholder="اكتب رسالتك..." rows="3"></textarea>
+    <button onclick="sendMessage()">إرسال</button>
+  </div>
+</div>
+
+  </div>  <script type="module">
+    import { db } from './firebase-config.js';
+    import { collection, doc, getDoc, updateDoc, getDocs, query, where, orderBy, addDoc } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+    async function login() {
+      const user = document.getElementById("adminUser").value;
+      const pass = document.getElementById("adminPass").value;
+      if (user === "BASHA" && pass === "000000") {
+        document.getElementById("adminLogin").style.display = "none";
+        document.getElementById("adminPanel").style.display = "block";
+        loadCrashPoints();
+        loadUsers();
+        loadWithdraws();
+        loadUsersForMessages();
+        startAdminMessageWatcher();
+      } else {
+        alert("بيانات الدخول غير صحيحة");
+      }
+    }
+
+    async function loadCrashPoints() {
+      const list = document.getElementById("crashPointList");
+      const local = JSON.parse(localStorage.getItem("crashPointsLog") || "[]");
+      list.innerHTML = local.reverse().slice(0, 10).map(p => `<div>💥 ${p.toFixed(2)}x</div>`).join("");
+    }
+
+    async function loadUsers() {
+      const snapshot = await getDocs(collection(db, "users"));
+      const userList = document.getElementById("userList");
+      userList.innerHTML = "";
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        userList.innerHTML += `<div class='user-log'>${data.username} — 💰 ${data.balance?.toFixed(2) ?? 0} USDT</div>`;
+      });
+    }
+
+    async function addBalance() {
+      const username = document.getElementById("targetUser").value;
+      const amount = parseFloat(document.getElementById("amount").value);
+      if (!username || isNaN(amount)) return alert("بيانات غير صحيحة");
+      const ref = doc(db, "users", username);
+      const userDoc = await getDoc(ref);
+      if (!userDoc.exists()) return alert("المستخدم غير موجود");
+      const current = userDoc.data();
+      const newBal = (current.balance || 0) + amount;
+      await updateDoc(ref, { balance: newBal });
+      alert("تمت إضافة الرصيد");
+      loadUsers();
+    }
+
+    async function loadWithdraws() {
+      const container = document.getElementById("withdrawRequests");
+      container.innerHTML = "";
+      const q = query(collection(db, "withdraw_requests"), where("status", "==", "pending"));
+      const snapshot = await getDocs(q);
+      snapshot.forEach(docSnap => {
+        const d = docSnap.data();
+        container.innerHTML += `
+          <div class='withdraw-log'>
+            🧾 <strong>${d.username}</strong> يطلب <strong>${d.amount}</strong> USDT<br>
+            <strong>الطريقة:</strong> ${d.method}<br>
+            <strong>الحساب:</strong> ${d.account}<br>
+            <small>${new Date(d.requestedAt).toLocaleString()}</small>
+            <div class="withdraw-actions">
+              <button class="accept" onclick="handleWithdrawAction('${docSnap.id}', true)">قبول</button>
+              <button class="reject" onclick="handleWithdrawAction('${docSnap.id}', false)">رفض</button>
+            </div>
+          </div>`;
+      });
+    }
+
+    async function handleWithdrawAction(id, accept) {
+      const ref = doc(db, "withdraw_requests", id);
+      await updateDoc(ref, { status: accept ? "approved" : "rejected" });
+      loadWithdraws();
+    }
+
+    window.handleWithdrawAction = handleWithdrawAction;
+
+    async function loadUsersForMessages() {
+      const snapshot = await getDocs(collection(db, "users"));
+      const selector = document.getElementById("userSelector");
+      selector.innerHTML = "";
+      snapshot.forEach(doc => {
+        const u = doc.data();
+        selector.innerHTML += `<option value="${u.username}">${u.username}</option>`;
+      });
+      selector.onchange = loadChat;
+      loadChat();
+    }
+
+    async function loadChat() {
+      const user = document.getElementById("userSelector").value;
+      const chatBox = document.getElementById("chatBox");
+      const q = query(collection(db, "messages"), where("from", "in", ["admin", user]), where("to", "in", ["admin", user]), orderBy("timestamp"));
+      const snapshot = await getDocs(q);
+      chatBox.innerHTML = "";
+      snapshot.forEach(doc => {
+        const m = doc.data();
+        chatBox.innerHTML += `<div><b>${m.from}:</b> ${m.message}</div>`;
+      });
+    }
+
+    async function sendMessage() {
+      const user = document.getElementById("userSelector").value;
+      const message = document.getElementById("adminMessage").value;
+      if (!message) return alert("اكتب رسالة أولاً");
+      await addDoc(collection(db, "messages"), {
+        from: "admin",
+        to: user,
+        message,
+        timestamp: new Date().toISOString(),
+        seen: false
+      });
+      document.getElementById("adminMessage").value = "";
+      loadChat();
+    }
+
+    function startAdminMessageWatcher() {
+      setInterval(async () => {
+        const q = query(collection(db, "messages"), where("to", "==", "admin"), where("seen", "!=", true), orderBy("timestamp"));
+        const snapshot = await getDocs(q);
+        snapshot.forEach(async (msgDoc) => {
+          const msg = msgDoc.data();
+          alert(`📩 رسالة جديدة من ${msg.from}:\n${msg.message}`);
+          await updateDoc(doc(db, "messages", msgDoc.id), { seen: true });
+        });
+      }, 30000);
+    }
+  </script></body>
+</html>

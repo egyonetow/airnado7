@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "name": "airnado",
+  "public": true,
+  "builds": [
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "admin-tool.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/admin", "dest": "/admin-tool.html" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}
